@@ -1,0 +1,6 @@
+/.eunit/
+/deps/
+/ebin/
+/logs/
+/test/*.beam
+.cowboy_fcgi_dialyzer.plt
