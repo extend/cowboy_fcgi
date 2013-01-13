@@ -38,10 +38,10 @@
                 path_root :: undefined | iodata(),
                 https :: boolean()}).
 
--record(cgi_head, {status = 200 :: http_status(),
+-record(cgi_head, {status = 200 :: cowboy_http:status(),
                    type :: undefined | binary(),
                    location :: undefined | binary(),
-                   headers = [] :: http_headers()}).
+                   headers = [] :: cowboy_http:headers()}).
 
 -spec init({atom(), http}, #http_req{}, [option()]) ->
             {ok, #http_req{}, #state{}}.
@@ -196,7 +196,7 @@ path_info([Segment|PathInfo], [Segment|Path], CGIPathInfo) ->
 path_info([], Path, CGIPathInfo) ->
   {CGIPathInfo, lists:reverse(Path)}.
 
--spec method(http_method()) -> binary().
+-spec method(cowboy_http:method()) -> binary().
 method('GET') ->
   <<"GET">>;
 method('POST') ->
@@ -214,13 +214,13 @@ method('TRACE') ->
 method(Method) when is_binary(Method) ->
   Method.
 
--spec protocol(http_version()) -> binary().
+-spec protocol(cowboy_http:version()) -> binary().
 protocol({1, 0}) ->
   <<"HTTP/1.0">>;
 protocol({1, 1}) ->
   <<"HTTP/1.1">>.
 
--spec params(http_headers(), [{binary(), iodata()}]) -> [{binary(), iodata()}].
+-spec params(cowboy_http:headers(), [{binary(), iodata()}]) -> [{binary(), iodata()}].
 params(Params, Acc) ->
   F = fun ({Name, Value}, Acc1) ->
         case param(Name) of
@@ -236,7 +236,7 @@ params(Params, Acc) ->
                 [{ParamName, Value} | Acc1] end end end,
   lists:foldl(F, Acc, lists:keysort(1, Params)).
 
--spec value_sep(http_header()) -> char().
+-spec value_sep(cowboy_http:header()) -> char().
 value_sep('Cookie') ->
   % Accumulate cookies using a semicolon because at least one known FastCGI
   % implementation (php-fpm) doesn't understand comma-separated cookies.
@@ -244,7 +244,7 @@ value_sep('Cookie') ->
 value_sep(_Header) ->
   $,.
 
--spec param(http_header()) -> binary() | ignore.
+-spec param(cowboy_http:header()) -> binary() | ignore.
 param('Accept') ->
   <<"HTTP_ACCEPT">>;
 param('Accept-Charset') ->
@@ -460,8 +460,8 @@ send_redirect(Req, #cgi_head{type = Type,
                              headers = Headers}, Body) ->
   reply(Req, Body, 302, Type, [{'Location', Location} | Headers]).
 
--spec reply(#http_req{}, [binary()], http_status(), undefined | binary(),
-            http_headers()) ->
+-spec reply(#http_req{}, [binary()], cowboy_http:status(), undefined | binary(),
+            cowboy_http:headers()) ->
              {ok, Req::#http_req{}}.
 %% @todo Filter headers like Content-Length.
 reply(Req, Body, Status, undefined, Headers) ->
