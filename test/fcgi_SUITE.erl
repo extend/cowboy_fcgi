@@ -112,14 +112,14 @@ hello(Config) ->
 	Url = build_url("/hello.php?name=Shinji", Config),
 	{ok, {{"HTTP/1.1", 200, "OK"}, Headers, "Shut up!\n"}} =
 		httpc:request(Url),
-	{"content-type", "text/plain"} = lists:keyfind("content-type", 1, Headers).
+	{"content-type", "text/plain;charset=UTF-8"} = lists:keyfind("content-type", 1, Headers).
 
 post(Config) ->
 	Body = "I'm a boring test post body.",
 	Url = build_url("/echo.php", Config),
 	{ok, {{"HTTP/1.1", 200, "OK"}, Headers, Body}} =
 		httpc:request(post, {Url, [], "text/x-plain-and-boring", Body}, [], []),
-	{"content-type", "text/x-plain-and-boring"} =
+	{"content-type", "text/x-plain-and-boring;charset=UTF-8"} =
 		lists:keyfind("content-type", 1, Headers),
 	{"content-length", 28}.
 
