@@ -69,11 +69,11 @@ init({Transport, http}, Req, Opts) ->
 
 -spec handle(http_req(), #state{}) -> {ok, http_req(), #state{}}.
 handle(Req, State) ->
-  {PathRaw, Req2} = cowboy_req:path(Req),
+  {Path, Req2} = cowboy_req:path(Req),
   {PathInfo, Req3} = cowboy_req:path_info(Req2),
-  [RawPath|_] = binary:split(PathRaw, <<"?">>),
-  Path = binary:split(RawPath, <<"/">>, [global, trim_all]),
-  Result = handle(Req3, State, {req, Path, PathInfo, RawPath}),
+  [RawPath|_] = binary:split(Path, <<"?">>),
+  PathParts = binary:split(RawPath, <<"/">>, [global, trim_all]),
+  Result = handle(Req3, State, {req, PathParts, PathInfo, RawPath}),
   Result.
 
 -spec handle(http_req(), #state{}, {req, [binary()], cowboy_router:tokens() | undefined, binary()}) ->
