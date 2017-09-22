@@ -69,7 +69,6 @@ init({Transport, http}, Req, Opts) ->
 
 -spec handle(http_req(), #state{}) -> {ok, http_req(), #state{}}.
 handle(Req, State) ->
-  {ok, Body, _} = cowboy_req:body(Req),
   {PathRaw, Req2} = cowboy_req:path(Req),
   {PathInfo, Req3} = cowboy_req:path_info(Req2),
   [RawPath|_] = binary:split(PathRaw, <<"?">>),
