@@ -226,12 +226,9 @@ method('TRACE') ->
 method(Method) when is_binary(Method) ->
   Method.
 
-% this function will no longer be needed once cowboy is upgraded to 0.8.5
 -spec protocol(cowboy:http_version()) -> binary().
-protocol({1, 0}) ->
-  <<"HTTP/1.0">>;
-protocol({1, 1}) ->
-  <<"HTTP/1.1">>.
+protocol(Version) when is_atom(Version) ->
+  atom_to_binary(Version, utf8).
 
 -spec params(cowboy_http:headers(), [{binary(), iodata()}]) -> [{binary(), iodata()}].
 params(Params, Acc) ->
