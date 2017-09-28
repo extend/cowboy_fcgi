@@ -46,6 +46,7 @@ init_per_suite(Config) ->
 			ok = application:start(inets),
 			ok = application:start(crypto),
 			ok = application:start(ranch),
+			ok = application:start(cowlib),
 			ok = application:start(cowboy),
 			ok = application:start(ex_fcgi),
 			Config;
