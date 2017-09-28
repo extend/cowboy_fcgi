@@ -30,7 +30,7 @@ all() ->
 
 groups() ->
 	[
-        {general, [], [ping, hello, post, post_qs, redirect]},
+		{general, [], [ping, hello, post, post_qs, redirect]},
 		{path_info, [], [path_info_empty, path_info_slash, path_info_nonempty]},
 		{headers, [], [multiple, cookies]},
 		{'php-fpm', [], [
@@ -45,6 +45,9 @@ init_per_suite(Config) ->
 		ok ->
 			ok = application:start(inets),
 			ok = application:start(crypto),
+			ok = application:start(asn1),
+			ok = application:start(public_key),
+			ok = application:start(ssl),
 			ok = application:start(ranch),
 			ok = application:start(cowlib),
 			ok = application:start(cowboy),
