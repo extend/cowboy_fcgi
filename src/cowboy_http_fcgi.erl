@@ -403,6 +403,8 @@ decode_cgi_head(_Head, eof, _More) ->
 decode_cgi_head(Head, Data, More) ->
   case erlang:decode_packet(httph_bin, Data, []) of
     {ok, {http_header, Int, Field, Atom, Value}, Rest} when is_atom(Field) ->
+      % httph_bin decoding will return recognized HTTP header field names as atoms.
+      % Convert them to binary so we can use them with cowboy.
       decode_cgi_head(Head, Rest, More, {http_header, Int, atom_to_binary(Field, utf8), Atom, Value});
     {ok, Packet, Rest} ->
       decode_cgi_head(Head, Rest, More, Packet);

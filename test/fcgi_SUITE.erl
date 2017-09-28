@@ -19,7 +19,7 @@
 -export([all/0, groups/0, init_per_suite/1, end_per_suite/1,
 	init_per_group/2, end_per_group/2]). %% ct.
 -export([ping/1, hello/1, post/1, post_qs/1, redirect/1]). %% php-fpm.
--export([multiline/1, multiple/1, cookies/1]). %% headers.
+-export([multiple/1, cookies/1]). %% headers.
 -export([path_info_empty/1, path_info_slash/1,
 	path_info_nonempty/1]). %% path info.
 
@@ -32,7 +32,7 @@ groups() ->
 	[
         {general, [], [ping, hello, post, post_qs, redirect]},
 		{path_info, [], [path_info_empty, path_info_slash, path_info_nonempty]},
-		{headers, [], [multiline, multiple, cookies]},
+		{headers, [], [multiple, cookies]},
 		{'php-fpm', [], [
 			{group, general},
 			{group, headers},
@@ -171,12 +171,6 @@ path_info_nonempty(Config) ->
 		lists:keyfind("x-path-translated", 1, Headers).
 
 %% headers.
-
-multiline(Config) ->
-	Url = build_url("/header.php?name=X-Multiline-Header", Config),
-	Request = {Url, [{"X-Multiline-Header", "Line1\r\n Line2"}]},
-	{ok, {{"HTTP/1.1", 200, "OK"}, _Headers, "Line1\r\n Line2"}} =
-		httpc:request(get, Request, [], []).
 
 multiple(Config) ->
 	Url = build_url("/header.php?name=X-Multiple-Header", Config),
