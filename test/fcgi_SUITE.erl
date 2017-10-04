@@ -19,7 +19,7 @@
 -export([all/0, groups/0, init_per_suite/1, end_per_suite/1,
 	init_per_group/2, end_per_group/2]). %% ct.
 -export([ping/1, hello/1, post/1, post_qs/1, redirect/1]). %% php-fpm.
--export([multiline/1, multiple/1, cookies/1]). %% headers.
+-export([multiple/1, cookies/1]). %% headers.
 -export([path_info_empty/1, path_info_slash/1,
 	path_info_nonempty/1]). %% path info.
 
@@ -30,10 +30,11 @@ all() ->
 
 groups() ->
 	[
+		{general, [], [ping, hello, post, post_qs, redirect]},
 		{path_info, [], [path_info_empty, path_info_slash, path_info_nonempty]},
-		{headers, [], [multiline, multiple, cookies]},
+		{headers, [], [multiple, cookies]},
 		{'php-fpm', [], [
-			ping, hello, post, post_qs, redirect,
+			{group, general},
 			{group, headers},
 			{group, path_info}
 		]}
@@ -42,9 +43,15 @@ groups() ->
 init_per_suite(Config) ->
 	case application:load(ex_fcgi) of
 		ok ->
-			application:start(ex_fcgi),
-			application:start(inets),
-			application:start(cowboy),
+			ok = application:start(inets),
+			ok = application:start(crypto),
+			ok = application:start(asn1),
+			ok = application:start(public_key),
+			ok = application:start(ssl),
+			ok = application:start(ranch),
+			ok = application:start(cowlib),
+			ok = application:start(cowboy),
+			ok = application:start(ex_fcgi),
 			Config;
 		{error, _Reason} ->
 			{skip, {notfound, ex_fcgi}}
@@ -70,20 +77,23 @@ init_per_group('php-fpm', Config) ->
 				++ "\"/php-fpm.conf -p \"" ++ PrivDir ++ "\""),
 			ex_fcgi:start('php-fpm', localhost, 33000),
 			Opts = [{name, 'php-fpm'}, {script_dir, DataDir}],
-			cowboy:start_listener(fcgi, 100,
-				cowboy_tcp_transport, [{port, TcpPort}],
-				cowboy_http_protocol, [{dispatch, [{'_', [
-					{[<<"ping">>], cowboy_http_fcgi, [{name, 'php-fpm'}]},
-					{[<<"hello.php">>], cowboy_http_fcgi, Opts},
-					{[<<"echo.php">>], cowboy_http_fcgi, Opts},
-					{[<<"status.php">>], cowboy_http_fcgi, Opts},
-					{[<<"redirect.php">>], cowboy_http_fcgi, Opts},
-					{[<<"header.php">>], cowboy_http_fcgi, Opts},
-					{[<<"cookies.php">>], cowboy_http_fcgi, Opts},
-					{[<<"path_info.php">>, '...'], cowboy_http_fcgi, [
+			Dispatch = cowboy_router:compile([
+ 				{'_', [
+					{"/ping", cowboy_http_fcgi, [{name, 'php-fpm'}]},
+					{"/hello.php", cowboy_http_fcgi, Opts},
+					{"/echo.php", cowboy_http_fcgi, Opts},
+					{"/status.php", cowboy_http_fcgi, Opts},
+					{"/redirect.php", cowboy_http_fcgi, Opts},
+					{"/header.php", cowboy_http_fcgi, Opts},
+					{"/cookies.php", cowboy_http_fcgi, Opts},
+					{"/path_info.php/[...]", cowboy_http_fcgi, [
 						{path_root, <<"/path/root">>}|Opts
 					]}
-				]}]}]
+				]}
+			]),
+			{ok, _} = cowboy:start_http(fcgi, 100,
+				[{port, TcpPort}],
+				[{env, [{dispatch, Dispatch}]}]
 			),
 			[{kill_path, KillPath}, {tcp_port, TcpPort}|Config]
 	end;
@@ -112,14 +122,14 @@ hello(Config) ->
 	Url = build_url("/hello.php?name=Shinji", Config),
 	{ok, {{"HTTP/1.1", 200, "OK"}, Headers, "Shut up!\n"}} =
 		httpc:request(Url),
-	{"content-type", "text/plain"} = lists:keyfind("content-type", 1, Headers).
+	{"content-type", "text/plain;charset=UTF-8"} = lists:keyfind("content-type", 1, Headers).
 
 post(Config) ->
 	Body = "I'm a boring test post body.",
 	Url = build_url("/echo.php", Config),
 	{ok, {{"HTTP/1.1", 200, "OK"}, Headers, Body}} =
 		httpc:request(post, {Url, [], "text/x-plain-and-boring", Body}, [], []),
-	{"content-type", "text/x-plain-and-boring"} =
+	{"content-type", "text/x-plain-and-boring;charset=UTF-8"} =
 		lists:keyfind("content-type", 1, Headers),
 	{"content-length", 28}.
 
@@ -166,16 +176,10 @@ path_info_nonempty(Config) ->
 
 %% headers.
 
-multiline(Config) ->
-	Url = build_url("/header.php?name=X-Multiline-Header", Config),
-	Request = {Url, [{"X-Multiline-Header", "Line1\r\n Line2"}]},
-	{ok, {{"HTTP/1.1", 200, "OK"}, _Headers, "Line1\r\n Line2"}} =
-		httpc:request(get, Request, [], []).
-
 multiple(Config) ->
 	Url = build_url("/header.php?name=X-Multiple-Header", Config),
 	Request = {Url, [{"X-Multiple-Header", "1"}, {"X-Multiple-Header", "2"}]},
-	{ok, {{"HTTP/1.1", 200, "OK"}, _Headers, "1,2"}} =
+	{ok, {{"HTTP/1.1", 200, "OK"}, _Headers, "2,1"}} =
 		httpc:request(get, Request, [], []).
 
 cookies(Config) ->
